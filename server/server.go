@@ -33,37 +33,39 @@ const (
 	defaultMaxInterval       = 1 * time.Second
 	defaultMetadataAddress   = "169.254.169.254"
 	defaultNamespaceKey      = "iam.amazonaws.com/allowed-roles"
+	defaultNamespaceRestrictionFormat = "glob"
 )
 
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer               string
-	APIToken                string
-	AppPort                 string
-	BaseRoleARN             string
-	DefaultIAMRole          string
-	IAMRoleKey              string
-	MetadataAddress         string
-	HostInterface           string
-	HostIP                  string
-	NodeName                string
-	NamespaceKey            string
-	LogLevel                string
-	LogFormat               string
-	AddIPTablesRule         bool
-	AutoDiscoverBaseArn     bool
-	AutoDiscoverDefaultRole bool
-	Debug                   bool
-	Insecure                bool
-	NamespaceRestriction    bool
-	Verbose                 bool
-	Version                 bool
-	iam                     *iam.Client
-	k8s                     *k8s.Client
-	roleMapper              *mappings.RoleMapper
-	BackoffMaxElapsedTime   time.Duration
-	BackoffMaxInterval      time.Duration
+	APIServer                  string
+	APIToken                   string
+	AppPort                    string
+	BaseRoleARN                string
+	DefaultIAMRole             string
+	IAMRoleKey                 string
+	MetadataAddress            string
+	HostInterface              string
+	HostIP                     string
+	NodeName                   string
+	NamespaceKey               string
+	LogLevel                   string
+	LogFormat                  string
+	NamespaceRestrictionFormat string
+	AddIPTablesRule            bool
+	AutoDiscoverBaseArn        bool
+	AutoDiscoverDefaultRole    bool
+	Debug                      bool
+	Insecure                   bool
+	NamespaceRestriction       bool
+	Verbose                    bool
+	Version                    bool
+	iam                        *iam.Client
+	k8s                        *k8s.Client
+	roleMapper                 *mappings.RoleMapper
+	BackoffMaxElapsedTime      time.Duration
+	BackoffMaxInterval         time.Duration
 }
 
 type appHandler func(*log.Entry, http.ResponseWriter, *http.Request)
@@ -269,7 +271,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	}
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
-	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
+	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
 	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
 	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
 
@@ -314,5 +316,6 @@ func NewServer() *Server {
 		LogFormat:             defaultLogFormat,
 		MetadataAddress:       defaultMetadataAddress,
 		NamespaceKey:          defaultNamespaceKey,
+		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
 	}
 }
