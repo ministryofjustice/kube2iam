@@ -93,6 +93,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 		namespace            string
 		namespaceAnnotations map[string]string
 		roleARN              string
+		namespaceRestrictionFormat string
 		expectedResult       bool
 	}{
 		{
@@ -102,11 +103,13 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			namespace:            "default",
 			expectedResult:       true,
 		},
+		// glob restrictions
 		{
 			test:                 "Restrictions enabled, default partial",
 			namespaceRestriction: true,
 			defaultArn:           "default-role",
 			roleARN:              "arn:aws:iam::123456789012:role/default-role",
+			namespaceRestrictionFormat: "glob",
 			expectedResult:       true,
 		},
 		{
@@ -114,6 +117,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			namespaceRestriction: true,
 			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
 			roleARN:              "arn:aws:iam::123456789012:role/default-role",
+			namespaceRestrictionFormat: "glob",
 			expectedResult:       true,
 		},
 		{
@@ -123,6 +127,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
 			namespace:            "default",
 			namespaceAnnotations: map[string]string{namespaceKey: "[\"explicit-role\"]"},
+			namespaceRestrictionFormat: "glob",
 			expectedResult:       true,
 		},
 		{
@@ -132,6 +137,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			roleARN:              "arn:aws:iam::123456789012:role/path/explicit-role",
 			namespace:            "default",
 			namespaceAnnotations: map[string]string{namespaceKey: "[\"path/*\"]"},
+			namespaceRestrictionFormat: "glob",
 			expectedResult:       true,
 		},
 		{
@@ -141,6 +147,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
 			namespace:            "default",
 			namespaceAnnotations: map[string]string{namespaceKey: "[\"arn:aws:iam::123456789012:role/explicit-role\"]"},
+			namespaceRestrictionFormat: "glob",
 			expectedResult:       true,
 		},
 		{
@@ -150,6 +157,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			roleARN:              "arn:aws:iam::123456789012:role/path/explicit-role",
 			namespace:            "default",
 			namespaceAnnotations: map[string]string{namespaceKey: "[\"arn:aws:iam::123456789012:role/path/*-role\"]"},
+			namespaceRestrictionFormat: "glob",
 			expectedResult:       true,
 		},
 		{
@@ -159,6 +167,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			roleARN:              "arn:aws:iam::123456789012:role/test-role",
 			namespace:            "default",
 			namespaceAnnotations: map[string]string{namespaceKey: "[\"arn:aws:iam::123456789012:role/explicit-role\"]"},
+			namespaceRestrictionFormat: "glob",
 			expectedResult:       false,
 		},
 		{
@@ -167,6 +176,84 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
 			namespace:            "default",
 			namespaceAnnotations: map[string]string{namespaceKey: ""},
+			namespaceRestrictionFormat: "glob",
+			expectedResult:       false,
+		},
+		// regexp restrictions
+
+		{
+			test:                 "Restrictions enabled (regexp), default partial",
+			namespaceRestriction: true,
+			defaultArn:           "default-role",
+			roleARN:              "arn:aws:iam::123456789012:role/default-role",
+			namespaceRestrictionFormat: "regexp",
+			expectedResult:       true,
+		},
+		{
+			test:                 "Restrictions enabled (regexp), default full arn",
+			namespaceRestriction: true,
+			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
+			roleARN:              "arn:aws:iam::123456789012:role/default-role",
+			namespaceRestrictionFormat: "regexp",
+			expectedResult:       true,
+		},
+		{
+			test:                 "Restrictions enabled (regexp), partial arn in annotation",
+			namespaceRestriction: true,
+			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
+			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
+			namespace:            "default",
+			namespaceAnnotations: map[string]string{namespaceKey: "[\"explicit-role\"]"},
+			namespaceRestrictionFormat: "regexp",
+			expectedResult:       true,
+		},
+		{
+			test:                 "Restrictions enabled (regexp), partial regexp in annotation",
+			namespaceRestriction: true,
+			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
+			roleARN:              "arn:aws:iam::123456789012:role/path/explicit-role",
+			namespace:            "default",
+			namespaceAnnotations: map[string]string{namespaceKey: "[\"path/.*\"]"},
+			namespaceRestrictionFormat: "regexp",
+			expectedResult:       true,
+		},
+		{
+			test:                 "Restrictions enabled (regexp), full arn in annotation",
+			namespaceRestriction: true,
+			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
+			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
+			namespace:            "default",
+			namespaceAnnotations: map[string]string{namespaceKey: "[\"arn:aws:iam::123456789012:role/explicit-role\"]"},
+			namespaceRestrictionFormat: "regexp",
+			expectedResult:       true,
+		},
+		{
+			test:                 "Restrictions enabled (regexp), full arn with regexp in annotation",
+			namespaceRestriction: true,
+			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
+			roleARN:              "arn:aws:iam::123456789012:role/path/explicit-role",
+			namespace:            "default",
+			namespaceAnnotations: map[string]string{namespaceKey: "[\"arn:aws:iam::123456789012:role/path/.*-role\"]"},
+			namespaceRestrictionFormat: "regexp",
+			expectedResult:       true,
+		},
+		{
+			test:                 "Restrictions enabled (regexp), full arn not in annotation",
+			namespaceRestriction: true,
+			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
+			roleARN:              "arn:aws:iam::123456789012:role/test-role",
+			namespace:            "default",
+			namespaceAnnotations: map[string]string{namespaceKey: "[\"arn:aws:iam::123456789012:role/explicit-role\"]"},
+			namespaceRestrictionFormat: "regexp",
+			expectedResult:       false,
+		},
+		{
+			test:                 "Restrictions enabled (regexp), no annotations",
+			namespaceRestriction: true,
+			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
+			namespace:            "default",
+			namespaceAnnotations: map[string]string{namespaceKey: ""},
+			namespaceRestrictionFormat: "regexp",
 			expectedResult:       false,
 		},
 	}
@@ -183,6 +270,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 					namespace:   tt.namespace,
 					annotations: tt.namespaceAnnotations,
 				},
+				tt.namespaceRestrictionFormat,
 			)
 
 			resp := rp.checkRoleForNamespace(tt.roleARN, tt.namespace)
